@@ -1,17 +1,3 @@
-<script setup>
-import { useRouter, useRoute } from 'vue-router'
-import { ref } from 'vue'
-
-const router = useRouter()
-const route = useRoute()
-const isLoggedIn = ref(true)
-
-const logout = () => {
-  isLoggedIn.value = false
-  router.push('/login')
-}
-</script>
-
 <template>
   <div id="app">
     <!-- Navbar -->
@@ -54,23 +40,40 @@ const logout = () => {
     </nav>
 
     <!-- Main Content -->
-    <main class="container-fluid py-4" :class="{ 'with-sidebar': route.path !== '/login' }">
-      <div class="row">
-        <div class="col-12">
-          <router-view />
-        </div>
-      </div>
+    <main :class="['main-container', { 'login-page': route.path === '/login' }]">
+      <router-view />
     </main>
   </div>
 </template>
 
+<script setup>
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+const logout = () => {
+  router.push('/login')
+}
+</script>
+
 <style>
-body {
-  background-color: #f8f9fa;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 16px;
+/* Reset básico */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: 'Inter', sans-serif;
 }
 
+/* Fondo general */
+body {
+  background-color: #f0f2f5;
+}
+
+/* Navbar */
 .navbar {
   padding: 1rem 0;
 }
@@ -90,12 +93,7 @@ body {
   border-radius: 0.5rem;
 }
 
-.card {
-  border: none;
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
-  border-radius: 0.75rem;
-}
-
+/* Botones */
 .btn {
   border-radius: 0.5rem;
   padding: 0.75rem 1.5rem;
@@ -103,148 +101,55 @@ body {
   font-weight: 500;
 }
 
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-}
-
-.btn-lg {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-}
-
-.form-control, .form-select {
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border-radius: 0.5rem;
-}
-
-.form-label {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-}
-
-.table {
-  border-radius: 0.75rem;
-  overflow: hidden;
-  font-size: 1rem;
-}
-
-.table th {
-  font-weight: 600;
-  font-size: 1rem;
-  padding: 1rem;
-}
-
-.table td {
-  padding: 1rem;
-  vertical-align: middle;
-}
-
-.bg-primary {
-  background-color: #4a6fa5 !important;
-}
-
 .btn-primary {
-  background-color: #4a6fa5;
-  border-color: #4a6fa5;
+  background-color: #667eea;
+  border-color: #667eea;
+  transition: all 0.3s ease;
 }
 
 .btn-primary:hover {
-  background-color: #3d5a91;
-  border-color: #3d5a91;
+  background-color: #5a67d8;
 }
 
-.modal-dialog {
-  max-width: 600px;
+/* Tarjetas y formularios */
+.card {
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
-.modal-header {
-  padding: 1.5rem;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.modal-footer {
-  padding: 1.5rem;
-}
-
-.alert {
-  padding: 1rem;
+.form-control {
+  padding: 0.75rem 1rem;
   border-radius: 0.5rem;
-  font-size: 0.95rem;
+  border: 1px solid #ccc;
 }
 
-/* Responsive improvements */
+.form-control:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.25rem rgba(102,126,234,0.25);
+}
+
+/* Main content */
+.main-container {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+/* Login específico */
+.main-container.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 0;
+}
+
+/* Responsive */
 @media (min-width: 768px) {
   .container-fluid {
     max-width: 1400px;
     margin: 0 auto;
   }
-}
-
-@media (min-width: 992px) {
-  .with-sidebar {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-}
-
-.table-responsive {
-  border-radius: 0.75rem;
-}
-
-@media (max-width: 767px) {
-  .btn {
-    padding: 0.6rem 1.2rem;
-  }
-
-  .btn-sm {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
-  }
-}
-
-/* Mejoras para btn-group */
-.btn-group .btn {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  border-radius: 0;
-}
-
-.btn-group .btn:first-child {
-  border-top-left-radius: 0.375rem;
-  border-bottom-left-radius: 0.375rem;
-}
-
-.btn-group .btn:last-child {
-  border-top-right-radius: 0.375rem;
-  border-bottom-right-radius: 0.375rem;
-}
-
-.btn-group .btn i {
-  font-size: 1rem;
-}
-
-/* Botones de acción en tablas */
-.table .btn {
-  min-width: 2.5rem;
-  height: 2.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.table .btn i {
-  font-size: 0.875rem;
-}
-
-.table .btn-sm {
-  min-width: 2rem;
-  height: 2rem;
-  padding: 0.25rem 0.5rem;
 }
 </style>
