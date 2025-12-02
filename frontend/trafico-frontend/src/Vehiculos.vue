@@ -4,13 +4,40 @@
       <div class="col-12">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
           <h2 class="text-primary mb-3 mb-md-0">Gestión de Vehículos</h2>
-          <button class="btn btn-primary btn-lg" @click="showModal = true">
+          <button class="btn btn-primary btn-lg" @click="openNew">
             <i class="bi bi-plus-circle me-2"></i> Nuevo Vehículo
           </button>
         </div>
       </div>
     </div>
 
+    <!-- Filtros -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card p-3">
+          <div class="row g-2">
+            <div class="col-12 col-md-3">
+              <label class="form-label small mb-1">Patente</label>
+              <input class="form-control" type="text" v-model="filters.patente" @input="onFilterInput" placeholder="Buscar por patente (ej: ABC-123)">
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label small mb-1">Marca</label>
+              <input class="form-control" type="text" v-model="filters.marca" @input="onFilterInput" placeholder="Buscar por marca">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small mb-1">Propietario (DNI o Nombre)</label>
+              <input class="form-control" type="text" v-model="filters.propietario" @input="onFilterInput" placeholder="Buscar por dni o nombre del propietario">
+            </div>
+            <div class="col-12 col-md-2 d-grid">
+              <button class="btn btn-outline-secondary" @click="clearFilters">Limpiar filtros</button>
+            </div>
+          </div>
+          <div class="small text-muted mt-2">Resultados: {{ filteredVehiculos.length }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla -->
     <div class="row">
       <div class="col-12">
         <div class="card">
@@ -26,7 +53,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="vehiculo in vehiculos" :key="vehiculo.patente">
+                  <tr v-for="vehiculo in filteredVehiculos" :key="vehiculo.patente">
                     <td class="px-4 py-3">
                       <strong>{{ vehiculo.patente }}</strong>
                     </td>
@@ -48,6 +75,9 @@
                       </div>
                     </td>
                   </tr>
+                  <tr v-if="!filteredVehiculos.length">
+                    <td colspan="4" class="text-center py-4 text-muted">No se encontraron vehículos</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -68,37 +98,42 @@
             <form @submit.prevent="saveVehiculo">
               <div class="mb-4">
                 <label class="form-label">Patente *</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
+                <input
+                  type="text"
+                  class="form-control"
                   :class="{ 'is-invalid': errors.patente }"
-                  v-model="form.patente" 
-                  :disabled="editingVehiculo" 
+                  v-model="form.patente"
+                  :disabled="editingVehiculo"
+                  @input="onPatenteInput"
                   @blur="validatePatente"
+                  placeholder="Ej: ABC-123"
                   maxlength="7"
+                  style="text-transform: uppercase"
                   required
                 >
-                <div v-if="errors.patente" class="invalid-feedback">{{ errors.patente }}</div>
+                <small v-if="errors.patente" class="text-danger">{{ errors.patente }}</small>
               </div>
               <div class="mb-4">
                 <label class="form-label">Marca *</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
+                <input
+                  type="text"
+                  class="form-control"
                   :class="{ 'is-invalid': errors.marca }"
-                  v-model="form.marca" 
+                  v-model="form.marca"
+                  @input="validateMarca"
                   @blur="validateMarca"
+                  placeholder="Ej: Toyota"
                   maxlength="30"
                   required
                 >
-                <div v-if="errors.marca" class="invalid-feedback">{{ errors.marca }}</div>
+                <small v-if="errors.marca" class="text-danger">{{ errors.marca }}</small>
               </div>
               <div class="mb-4">
                 <label class="form-label">Propietario *</label>
-                <select 
-                  class="form-select" 
+                <select
+                  class="form-select"
                   :class="{ 'is-invalid': errors.propietario }"
-                  v-model="form.propietario" 
+                  v-model="form.propietario"
                   @change="validatePropietario"
                   required
                 >
@@ -107,10 +142,10 @@
                     {{ persona.nombre }} ({{ persona.dni }})
                   </option>
                 </select>
-                <div v-if="errors.propietario" class="invalid-feedback">{{ errors.propietario }}</div>
+                <small v-if="errors.propietario" class="text-danger">{{ errors.propietario }}</small>
               </div>
             </form>
-            
+
             <div v-if="apiError" class="alert alert-danger">
               {{ apiError }}
             </div>
@@ -135,6 +170,7 @@ const personas = ref([])
 const showModal = ref(false)
 const editingVehiculo = ref(false)
 const apiError = ref('')
+
 const form = ref({
   patente: '',
   marca: '',
@@ -146,30 +182,45 @@ const errors = ref({
   propietario: ''
 })
 
+const filters = ref({
+  patente: '',
+  marca: '',
+  propietario: ''
+})
+
+let filterDebounce = null
+
 const isFormValid = computed(() => {
-  return form.value.patente && 
-         form.value.marca && 
+  return form.value.patente &&
+         form.value.marca &&
          form.value.propietario &&
-         !errors.value.patente && 
-         !errors.value.marca && 
+         !errors.value.patente &&
+         !errors.value.marca &&
          !errors.value.propietario
 })
 
+const onPatenteInput = () => {
+  form.value.patente = (form.value.patente || '').toUpperCase()
+  validatePatente()
+}
+
 const validatePatente = () => {
-  if (!form.value.patente || form.value.patente.trim() === '') {
+  const patente = (form.value.patente || '').trim().toUpperCase()
+  if (!patente) {
     errors.value.patente = 'La patente es obligatoria'
-  } else if (form.value.patente.length > 7) {
-    errors.value.patente = 'La patente no puede exceder 7 caracteres'
+  } else if (!/^[A-Z]{3}-\d{3}$/.test(patente)) {
+    errors.value.patente = 'La patente debe tener formato AAA-000 (3 letras + guión + 3 números)'
   } else {
     errors.value.patente = ''
   }
 }
 
 const validateMarca = () => {
-  if (!form.value.marca || form.value.marca.trim() === '') {
-    errors.value.marca = 'La marca no puede estar vacía'
-  } else if (form.value.marca.length > 30) {
-    errors.value.marca = 'La marca no puede exceder 30 caracteres'
+  const marca = (form.value.marca || '').trim()
+  if (!marca) {
+    errors.value.marca = 'La marca es obligatoria'
+  } else if (marca.length < 2 || marca.length > 30) {
+    errors.value.marca = 'La marca debe tener entre 2 y 30 caracteres'
   } else {
     errors.value.marca = ''
   }
@@ -186,7 +237,7 @@ const validatePropietario = () => {
 const loadVehiculos = async () => {
   try {
     const response = await api.getVehiculos()
-    vehiculos.value = response.data
+    vehiculos.value = response.data || []
   } catch (error) {
     console.error('Error loading vehiculos:', error)
   }
@@ -195,44 +246,51 @@ const loadVehiculos = async () => {
 const loadPersonas = async () => {
   try {
     const response = await api.getPersonas()
-    personas.value = response.data
+    personas.value = response.data || []
   } catch (error) {
     console.error('Error loading personas:', error)
   }
 }
 
 const editVehiculo = (vehiculo) => {
-  form.value = { ...vehiculo }
+  // Asegurarse de que propietario sea referencia a objeto persona en la lista (para select)
+  const propietarioObj = vehiculo.propietario
+    ? personas.value.find(p => String(p.dni) === String(vehiculo.propietario.dni)) || vehiculo.propietario
+    : null
+
+  form.value = {
+    patente: vehiculo.patente,
+    marca: vehiculo.marca,
+    propietario: propietarioObj
+  }
+  errors.value = { patente: '', marca: '', propietario: '' }
   editingVehiculo.value = true
   showModal.value = true
 }
 
 const saveVehiculo = async () => {
-  // Validar todos los campos
   validatePatente()
   validateMarca()
   validatePropietario()
-  
-  if (!isFormValid.value) {
-    return
-  }
-  
+  if (!isFormValid.value) return
+
   try {
     apiError.value = ''
-    if (editingVehiculo.value) {
-      await api.updateVehiculo(form.value.patente, form.value)
-    } else {
-      await api.createVehiculo(form.value)
+    const payload = {
+      patente: form.value.patente,
+      marca: form.value.marca,
+      propietario: form.value.propietario
     }
+    if (editingVehiculo.value) {
+      await api.updateVehiculo(form.value.patente, payload)
+    } else {
+      await api.createVehiculo(payload)
+    }
+    await loadVehiculos()
     closeModal()
-    loadVehiculos()
   } catch (error) {
     console.error('Error saving vehiculo:', error)
-    if (error.response?.data?.message) {
-      apiError.value = error.response.data.message
-    } else {
-      apiError.value = 'Error al guardar el vehículo. Verifique los datos.'
-    }
+    apiError.value = error.response?.data?.message || 'Error al guardar el vehículo. Verifique los datos.'
   }
 }
 
@@ -240,7 +298,7 @@ const deleteVehiculo = async (patente) => {
   if (confirm('¿Está seguro de eliminar este vehículo?')) {
     try {
       await api.deleteVehiculo(patente)
-      loadVehiculos()
+      await loadVehiculos()
     } catch (error) {
       console.error('Error deleting vehiculo:', error)
       alert('Error al eliminar el vehículo')
@@ -256,8 +314,47 @@ const closeModal = () => {
   errors.value = { patente: '', marca: '', propietario: '' }
 }
 
-onMounted(() => {
-  loadVehiculos()
-  loadPersonas()
+/* Filtering logic (client-side with debounce) */
+const onFilterInput = () => {
+  clearTimeout(filterDebounce)
+  filterDebounce = setTimeout(() => {
+    // client-side filtering done in computed filteredVehiculos
+    // if you want server-side filtering, call an API with params here
+  }, 200)
+}
+
+const clearFilters = () => {
+  filters.value = { patente: '', marca: '', propietario: '' }
+}
+
+/* computed filtered list */
+const filteredVehiculos = computed(() => {
+  const fPat = (filters.value.patente || '').trim().toLowerCase()
+  const fMarca = (filters.value.marca || '').trim().toLowerCase()
+  const fProp = (filters.value.propietario || '').trim().toLowerCase()
+
+  if (!fPat && !fMarca && !fProp) return vehiculos.value
+
+  return vehiculos.value.filter(v => {
+    const patenteStr = (v.patente || '').toString().toLowerCase()
+    const marcaStr = (v.marca || '').toString().toLowerCase()
+    const propNombre = (v.propietario?.nombre || '').toString().toLowerCase()
+    const propDni = (v.propietario?.dni || '').toString().toLowerCase()
+
+    const patenteMatch = fPat ? patenteStr.includes(fPat) : true
+    const marcaMatch = fMarca ? marcaStr.includes(fMarca) : true
+    const propMatch = fProp ? (propNombre.includes(fProp) || propDni.includes(fProp)) : true
+
+    return patenteMatch && marcaMatch && propMatch
+  })
+})
+
+onMounted(async () => {
+  await Promise.all([loadVehiculos(), loadPersonas()])
 })
 </script>
+
+<style scoped>
+.card.p-3 { padding: 1rem; }
+.small.text-muted.mt-2 { margin-top: 0.5rem; }
+</style>

@@ -42,5 +42,19 @@ export default {
   getJuez: (id) => api.get(`/jueces/${id}`),
   createJuez: (data) => api.post('/jueces', data),
   updateJuez: (id, data) => api.put(`/jueces/${id}`, data),
-  deleteJuez: (id) => api.delete(`/jueces/${id}`)
+  deleteJuez: (id) => api.delete(`/jueces/${id}`),
+
+  // Detalle Accidentes
+  getDetalleAccidentes: () => api.get('/detalle-accidentes'),
+  getDetalleAccidente: (accidente, vehiculo) => api.get(`/detalle-accidentes/buscar?accidente=${accidente}&vehiculo=${vehiculo}`),
+  createDetalleAccidente: (data) => api.post('/detalle-accidentes', data),
+  updateDetalleAccidente: (data) => api.put('/detalle-accidentes', data),
+  deleteDetalleAccidente: (accidente, vehiculo) => api.delete(`/detalle-accidentes?accidente=${accidente}&vehiculo=${vehiculo}`),
+
+  // Detalle Multas
+  getDetalleMultas: () => api.get('/detalle-multas'),
+  getDetalleMulta: (multa, vehiculo) => api.get(`/detalle-multas/buscar?multa=${multa}&vehiculo=${vehiculo}`),
+  createDetalleMulta: (data) => api.post('/detalle-multas', data),
+  updateDetalleMulta: (data) => api.put('/detalle-multas', data),
+  deleteDetalleMulta: (multa, vehiculo) => api.delete(`/detalle-multas?multa=${multa}&vehiculo=${vehiculo}`)
 }

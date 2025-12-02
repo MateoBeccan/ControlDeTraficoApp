@@ -11,14 +11,14 @@ public class DetalleMulta {
 
     @Id
     @ManyToOne
-    @JoinColumn(name = "NRO_MULTA")
-    private Multa multa;
+        @JoinColumn(name = "NRO_MULTA")
+        private Multa multa;
 
-    @Id
-    @ManyToOne
-    @JoinColumn(name = "PATENTE_VEHICULO")
-    private Vehiculo vehiculo;
+        @Id
+        @ManyToOne
+        @JoinColumn(name = "PATENTE_VEHICULO")
+        private Vehiculo vehiculo;
 
-    @Column(name = "DESCRIPCION_MULTA", length = 200)
-    private String descripcion;
-}
+        @Column(name = "DESCRIPCION_MULTA", length = 200)
+        private String descripcion;
+    }

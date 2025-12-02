@@ -20,15 +20,15 @@ const logout = () => {
         <router-link class="navbar-brand" to="/dashboard">
           <i class="bi bi-car-front"></i> Sistema de Tráfico
         </router-link>
-        
+
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span class="navbar-toggler-icon"></span>
         </button>
-        
+
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <router-link class="nav-link" to="/dashboard">Dashboard</router-link>
+              <router-link class="nav-link" to="/dashboard">Panel principal</router-link>
             </li>
             <li class="nav-item">
               <router-link class="nav-link" to="/personas">Personas</router-link>
@@ -201,10 +201,50 @@ body {
   .btn {
     padding: 0.6rem 1.2rem;
   }
-  
+
   .btn-sm {
     padding: 0.4rem 0.8rem;
     font-size: 0.85rem;
   }
+}
+
+/* Mejoras para btn-group */
+.btn-group .btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+
+.btn-group .btn:last-child {
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+.btn-group .btn i {
+  font-size: 1rem;
+}
+
+/* Botones de acción en tablas */
+.table .btn {
+  min-width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table .btn i {
+  font-size: 0.875rem;
+}
+
+.table .btn-sm {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0.25rem 0.5rem;
 }
 </style>

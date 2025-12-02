@@ -4,9 +4,34 @@
       <div class="col-12">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
           <h2 class="text-primary mb-3 mb-md-0">Gestión de Personas</h2>
-          <button class="btn btn-primary btn-lg" @click="showModal = true">
+          <button class="btn btn-primary btn-lg" @click="openNew">
             <i class="bi bi-plus-circle me-2"></i> Nueva Persona
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card p-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+              <label class="form-label small mb-1">DNI</label>
+              <input class="form-control" type="text" v-model="filters.dni" @input="onFilterInput" placeholder="Buscar por DNI (exacto o parcial)">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small mb-1">Nombre</label>
+              <input class="form-control" type="text" v-model="filters.nombre" @input="onFilterInput" placeholder="Buscar por nombre">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small mb-1">Dirección</label>
+              <input class="form-control" type="text" v-model="filters.direccion" @input="onFilterInput" placeholder="Buscar por dirección">
+            </div>
+            <div class="col-12 col-md-1 d-grid">
+              <button class="btn btn-outline-secondary" @click="clearFilters" title="Limpiar filtros">Limpiar</button>
+            </div>
+          </div>
+          <div class="small text-muted mt-2">Resultados: {{ filteredPersonas.length }}</div>
         </div>
       </div>
     </div>
@@ -26,7 +51,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="persona in personas" :key="persona.dni">
+                  <tr v-for="persona in filteredPersonas" :key="persona.dni">
                     <td class="px-4 py-3">{{ persona.dni }}</td>
                     <td class="px-4 py-3">
                       <div>
@@ -45,6 +70,9 @@
                         </button>
                       </div>
                     </td>
+                  </tr>
+                  <tr v-if="!filteredPersonas.length">
+                    <td colspan="4" class="text-center py-4 text-muted">No se encontraron personas</td>
                   </tr>
                 </tbody>
               </table>
@@ -66,44 +94,52 @@
             <form @submit.prevent="savePersona">
               <div class="mb-4">
                 <label class="form-label">DNI *</label>
-                <input 
-                  type="number" 
-                  class="form-control" 
+                <input
+                  type="text"
+                  class="form-control"
                   :class="{ 'is-invalid': errors.dni }"
-                  v-model="form.dni" 
-                  :disabled="editingPersona" 
+                  v-model="form.dni"
+                  :disabled="editingPersona"
+                  @input="validateDni"
                   @blur="validateDni"
+                  placeholder="Ej: 12345678"
+                  maxlength="8"
                   required
                 >
-                <div v-if="errors.dni" class="invalid-feedback">{{ errors.dni }}</div>
+                <small v-if="errors.dni" class="text-danger">{{ errors.dni }}</small>
               </div>
               <div class="mb-4">
                 <label class="form-label">Nombre *</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
+                <input
+                  type="text"
+                  class="form-control"
                   :class="{ 'is-invalid': errors.nombre }"
-                  v-model="form.nombre" 
+                  v-model="form.nombre"
+                  @input="validateNombre"
                   @blur="validateNombre"
+                  placeholder="Ej: Juan Pérez"
                   maxlength="50"
                   required
                 >
-                <div v-if="errors.nombre" class="invalid-feedback">{{ errors.nombre }}</div>
+                <small v-if="errors.nombre" class="text-danger">{{ errors.nombre }}</small>
               </div>
               <div class="mb-4">
-                <label class="form-label">Dirección</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
+                <label class="form-label">Dirección *</label>
+                <input
+                  type="text"
+                  class="form-control"
                   :class="{ 'is-invalid': errors.direccion }"
                   v-model="form.direccion"
+                  @input="validateDireccion"
                   @blur="validateDireccion"
+                  placeholder="Ej: Av. Corrientes 1234"
                   maxlength="100"
+                  required
                 >
-                <div v-if="errors.direccion" class="invalid-feedback">{{ errors.direccion }}</div>
+                <small v-if="errors.direccion" class="text-danger">{{ errors.direccion }}</small>
               </div>
             </form>
-            
+
             <div v-if="apiError" class="alert alert-danger">
               {{ apiError }}
             </div>
@@ -138,49 +174,60 @@ const errors = ref({
   direccion: ''
 })
 
+const filters = ref({
+  dni: '',
+  nombre: '',
+  direccion: ''
+})
+
+let filterDebounce = null
+
 const isFormValid = computed(() => {
-  return form.value.dni && 
-         form.value.nombre && 
-         !errors.value.dni && 
-         !errors.value.nombre && 
+  return form.value.dni &&
+         form.value.nombre &&
+         form.value.direccion &&
+         !errors.value.dni &&
+         !errors.value.nombre &&
          !errors.value.direccion
 })
 
 const validateDni = () => {
-  if (!form.value.dni) {
-    errors.value.dni = 'El DNI es obligatorio'
-  } else if (form.value.dni <= 0) {
-    errors.value.dni = 'El DNI debe ser un número positivo'
-  } else {
-    errors.value.dni = ''
-  }
+  const dni = form.value.dni?.toString() || ''
+  if (!dni) errors.value.dni = 'El DNI es obligatorio'
+  else if (!/^\d+$/.test(dni)) errors.value.dni = 'El DNI debe ser numérico'
+  else if (dni.length < 7 || dni.length > 8) errors.value.dni = 'El DNI debe tener entre 7 y 8 dígitos'
+  else errors.value.dni = ''
 }
 
 const validateNombre = () => {
-  if (!form.value.nombre || form.value.nombre.trim() === '') {
-    errors.value.nombre = 'El nombre no puede estar vacío'
-  } else if (form.value.nombre.length > 50) {
-    errors.value.nombre = 'El nombre no puede exceder 50 caracteres'
-  } else {
-    errors.value.nombre = ''
-  }
+  const nombre = form.value.nombre?.trim() || ''
+  if (!nombre) errors.value.nombre = 'El nombre es obligatorio'
+  else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombre)) errors.value.nombre = 'El nombre solo puede contener letras y espacios'
+  else if (nombre.length < 3 || nombre.length > 50) errors.value.nombre = 'El nombre debe tener entre 3 y 50 caracteres'
+  else errors.value.nombre = ''
 }
 
 const validateDireccion = () => {
-  if (form.value.direccion && form.value.direccion.length > 100) {
-    errors.value.direccion = 'La dirección no puede exceder 100 caracteres'
-  } else {
-    errors.value.direccion = ''
-  }
+  const direccion = form.value.direccion?.trim() || ''
+  if (!direccion) errors.value.direccion = 'La dirección es obligatoria'
+  else if (direccion.length < 5 || direccion.length > 100) errors.value.direccion = 'La dirección debe tener entre 5 y 100 caracteres'
+  else errors.value.direccion = ''
 }
 
 const loadPersonas = async () => {
   try {
     const response = await api.getPersonas()
-    personas.value = response.data
+    personas.value = response.data || []
   } catch (error) {
     console.error('Error loading personas:', error)
   }
+}
+
+const openNew = () => {
+  form.value = { dni: '', nombre: '', direccion: '' }
+  errors.value = { dni: '', nombre: '', direccion: '' }
+  editingPersona.value = false
+  showModal.value = true
 }
 
 const editPersona = (persona) => {
@@ -190,15 +237,10 @@ const editPersona = (persona) => {
 }
 
 const savePersona = async () => {
-  // Validar todos los campos
   validateDni()
   validateNombre()
   validateDireccion()
-  
-  if (!isFormValid.value) {
-    return
-  }
-  
+  if (!isFormValid.value) return
   try {
     apiError.value = ''
     if (editingPersona.value) {
@@ -207,14 +249,10 @@ const savePersona = async () => {
       await api.createPersona(form.value)
     }
     closeModal()
-    loadPersonas()
+    await loadPersonas()
   } catch (error) {
     console.error('Error saving persona:', error)
-    if (error.response?.data?.message) {
-      apiError.value = error.response.data.message
-    } else {
-      apiError.value = 'Error al guardar la persona. Verifique los datos.'
-    }
+    apiError.value = error.response?.data?.message || 'Error al guardar la persona. Verifique los datos.'
   }
 }
 
@@ -222,7 +260,7 @@ const deletePersona = async (dni) => {
   if (confirm('¿Está seguro de eliminar esta persona?')) {
     try {
       await api.deletePersona(dni)
-      loadPersonas()
+      await loadPersonas()
     } catch (error) {
       console.error('Error deleting persona:', error)
       alert('Error al eliminar la persona')
@@ -238,7 +276,49 @@ const closeModal = () => {
   errors.value = { dni: '', nombre: '', direccion: '' }
 }
 
+/* Filtering logic */
+const onFilterInput = () => {
+  clearTimeout(filterDebounce)
+  filterDebounce = setTimeout(() => {
+    // If you want server-side filtering, call an endpoint with query params here.
+    // For now we filter client-side using the loaded array (works well for moderately sized datasets).
+    // If dataset is huge, we should implement: api.getPersonas({ params: { dni, nombre, direccion } })
+    // and the backend should support those query params.
+  }, 250)
+}
+
+const clearFilters = () => {
+  filters.value = { dni: '', nombre: '', direccion: '' }
+}
+
+/* computed filtered list */
+const filteredPersonas = computed(() => {
+  const fDni = (filters.value.dni || '').toString().trim().toLowerCase()
+  const fNombre = (filters.value.nombre || '').trim().toLowerCase()
+  const fDireccion = (filters.value.direccion || '').trim().toLowerCase()
+
+  if (!fDni && !fNombre && !fDireccion) return personas.value
+
+  return personas.value.filter(p => {
+    const dniStr = (p.dni || '').toString().toLowerCase()
+    const nombreStr = (p.nombre || '').toLowerCase()
+    const direccionStr = (p.direccion || '').toLowerCase()
+
+    const dniMatch = fDni ? dniStr.includes(fDni) : true
+    const nombreMatch = fNombre ? nombreStr.includes(fNombre) : true
+    const direccionMatch = fDireccion ? direccionStr.includes(fDireccion) : true
+
+    return dniMatch && nombreMatch && direccionMatch
+  })
+})
+
 onMounted(() => {
   loadPersonas()
 })
 </script>
+
+<style scoped>
+/* conservé tus estilos previos y añadí pequeños ajustes para el área de filtros */
+.card.p-3 { padding: 1rem; }
+.small.text-muted.mt-2 { margin-top: 0.5rem; }
+</style>
